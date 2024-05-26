@@ -635,6 +635,6 @@ int main() {
                printf("Choix invalide. Veuillez réessayer.\n");
        }
    }
-}
+
    return 0;
 }
