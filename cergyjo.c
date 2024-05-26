@@ -115,7 +115,7 @@ void enterTraining(struct Training *training, char *nameAthlete, struct Training
 }
 
 
-//fonction qui cree un fichier 
+//fonction qui rajoute un entrainenemnt dans un fichier pour un athlete dont le nom est entré en parametres; cette fonction crée le fichier pour l'athlète s'il n'rest pas déjà crée
 void saveTraining(char *nameFile, struct Training *trainings, int nbTrainings) {
     FILE *file = fopen(nameFile, "w");
     if (file == NULL) {
@@ -134,6 +134,8 @@ void saveTraining(char *nameFile, struct Training *trainings, int nbTrainings) {
     fclose(file);
     printf("Entraînements sauvegardés avec succès dans le fichier %s.\n", nameFile);
 }
+
+//fonction qui compare deux dates entrées en parametres
 int comparedDates(struct Date date1, struct Date date2) {
     if (date1.year != date2.year) {
         return date1.year - date2.year;
@@ -210,6 +212,7 @@ void consultTrainings(struct Training *trainings, int nbTrainings, int choiceSor
     }
 }
 
+//fonction qui permet d'afficher en caracteres les noms qui correspondent aux propositions dans l'énumération
 const char* type_test_to_string(enum Tests type){
   switch(type){
     case CENT_METRES: return "100m";
@@ -221,7 +224,8 @@ const char* type_test_to_string(enum Tests type){
   }
 }
 
-enum Tests type_test(int type_test){
+//fonction qui renvoie le type de l'épreuve en fonction du numéro entré 
+enum Tests type_test(int type_test){ //type_test: 1 pour 100m, 2 pour 400m, 3 pour 5000m, 4 pour marathon et 5 pour relais
     enum Tests type;
     switch (type_test){
       case 1:type=CENT_METRES;
@@ -238,16 +242,21 @@ enum Tests type_test(int type_test){
     return type;
 }
 
-
+//fonction qui permet d'afficher l'historique des entrainements pour un athlete
 void consultTrainingsByAthlete(char *nameAthlete, struct Training *trainings, int nbTrainings) {
     bool found = false;
     printf("Historique des entraînements pour l'athlète %s:\n", nameAthlete);
     for (int i = 0; i < nbTrainings; i++) {
         if (strcmp(trainings[i].participants[0].name, nameAthlete) == 0) {
             found = true;
-            printf("Date : %02d/%02d/%04d, Type : %s, Temps : %.2f secondes\n",
-                   trainings[i].date.day, trainings[i].date.month, trainings[i].date.year,
-                   type_test_to_string(trainings[i].type), trainings[i].time);
+            if(trainings[i].type==RELAIS_QUATRE_CENTS){
+                printf("Date : %02d/%02d/%04d, Type: %s, Position: %d, Temps : %.2f secondes\n",
+                   trainings[i].date.day, trainings[i].date.month, trainings[i].date.year, type_test_to_string(trainings[i].type), trainings[i].participants->position,trainings[i].time);
+            }
+            else{
+                printf("Date : %02d/%02d/%04d, Type: %s, Temps : %.2f secondes\n",
+                   trainings[i].date.day, trainings[i].date.month, trainings[i].date.year, type_test_to_string(trainings[i].type), trainings[i].time);
+            }
         }
     }
     if (!found) {
@@ -255,6 +264,7 @@ void consultTrainingsByAthlete(char *nameAthlete, struct Training *trainings, in
     }
 }
 
+//fonction qui permet d'afficher l'historique des entrainements pour une date
 void consultTrainingsByDate(struct Date date, struct Training *trainings, int nbTrainings) {
     bool found = false;
     printf("Historique des entraînements pour la date %02d/%02d/%04d:\n", date.day, date.month, date.year);
@@ -263,8 +273,14 @@ void consultTrainingsByDate(struct Date date, struct Training *trainings, int nb
             trainings[i].date.month == date.month &&
             trainings[i].date.year == date.year) {
             found = true;
-            printf("Athlète : %s, Type : %s, Temps : %.2f secondes\n",
-                   trainings[i].participants[0].name, type_test_to_string(trainings[i].type), trainings[i].time);
+            if(trainings[i].type==RELAIS_QUATRE_CENTS){
+                printf("Athlete: %s, Type : %s, Position: %d, Temps : %.2f secondes\n",
+                   trainings[i].participants[0].name,type_test_to_string(trainings[i].type), trainings[i].participants->position,trainings[i].time);
+            }
+            else{
+                printf("Athlete: %s, Type : %s, Temps : %.2f secondes\n",
+                   trainings[i].participants[0].name,type_test_to_string(trainings[i].type), trainings[i].time);
+            }
         }
     }
     if (!found) {
@@ -272,6 +288,7 @@ void consultTrainingsByDate(struct Date date, struct Training *trainings, int nb
     }
 }
 
+//fonction qui permet d'afficher l'historique des entrainements pour une épreuve
 void consultTrainingsByTest(enum Tests type, struct Training *trainings, int nbTrainings) {
     bool found = false;
     printf("Historique des entraînements pour l'épreuve %s:\n", type_test_to_string(type));
@@ -295,9 +312,14 @@ void consultTrainingsByTest(enum Tests type, struct Training *trainings, int nbT
     }
 }
 
+//fonction qui permet d'afficher l'historique des entrainements en fonction de certains parametres
 void consultHistoric(struct Training* trainings, int nbTrainings){
     int choice,type;
-    char* nameAthlete;
+    char* nameAthlete=malloc(sizeof(char*));
+    if(nameAthlete==NULL){
+        perror("erreur d'allocation de la mémoire\n");
+        return;
+    }
     struct Date date;
     enum Tests decision;
     printf("1. Consulter entrainement par athlete\n2. Consulter entrainemenr par date\n3. Consulter entrainement par epreuve\n");
@@ -305,8 +327,7 @@ void consultHistoric(struct Training* trainings, int nbTrainings){
     switch(choice){
         case 1:
             printf("Nom de l'athlète: ");
-            fgets(nameAthlete, MAX_NAME_LENGHT, stdin);
-            nameAthlete[strcspn(nameAthlete, "\n")] = '\0';
+            scanf("%s",nameAthlete);
             consultTrainingsByAthlete(nameAthlete, trainings, nbTrainings);
         break;
         case 2:
@@ -329,41 +350,7 @@ void consultHistoric(struct Training* trainings, int nbTrainings){
 
 }
 
-int chargerEntrainements(char *nameFile, struct Training *trainings) {
-    FILE *file = fopen(nameFile, "r");
-    if (file == NULL) {
-        printf("Erreur lors de l'ouverture du fichier %s\n", nameFile);
-        return 0;
-    }
-
-    int count = 0;
-    while (fscanf(file, "%d/%d/%d %f %d",
-                  &trainings[count].date.day,
-                  &trainings[count].date.month,
-                  &trainings[count].date.year,
-                  &trainings[count].time,
-                  (int *)&trainings[count].type) == 5) {
-        if (trainings[count].type == RELAIS_QUATRE_CENTS) {
-            for (int i = 0; i < 4; i++) {
-                fscanf(file, "%s %d", trainings[count].participants[i].name, &trainings[count].participants[i].position);
-            }
-        } else if (trainings[count].type == AUTRE_PERSONNALISEE) {
-            fscanf(file, "%s", trainings[count].participants[0].name); // Le nom de l'épreuve personnalisée est stocké dans le nom du premier participant
-        } else {
-            fscanf(file, "%s %d", trainings[count].participants[0].name, &trainings[count].participants[0].position);
-        }
-        count++;
-        if (count >= MAX_TRAINING) {
-            printf("Nombre maximal d'entraînements atteint.\n");
-            break;
-        }
-    }
-
-    fclose(file);
-    return count;
-}
-
-
+//focntion qui permet de consulter les statistiques des performance d'un athlete
 void consultStatistics(char *nameAthlete, struct Training *trainings, int nbTrainings, enum Tests test) {
     float total = 0;
     int count = 0;
@@ -382,6 +369,7 @@ void consultStatistics(char *nameAthlete, struct Training *trainings, int nbTrai
     }
 }
 
+//?
 void summaryPerformancesAthlete(char *nameAthlete, struct Training *trainings, int nbTrainings, enum Tests test) {
     int total = 0;
 
@@ -394,6 +382,7 @@ void summaryPerformancesAthlete(char *nameAthlete, struct Training *trainings, i
     printf("Nombre total d'entrainements pour cette épreuve : %d\n", total);
 }
 
+//?
 void progressAthlete(char *nameAthlete, struct Training *trainings, int nbTrainings, enum Tests test) {
     float timeMin = FLT_MAX;
     float timeMax = FLT_MIN;
@@ -451,6 +440,7 @@ enum Tests choiceTypeTest() {
     }
 }
 
+//fonction qui recherche le meilleur athlete pour une epreuve
 void findBestAthletes(struct Training *trainings, int nbTrainings, enum Tests test) {
     float bestTime = FLT_MAX;
     char bestAthlete[MAX_NAME_LENGHT] = "";
@@ -471,6 +461,7 @@ void findBestAthletes(struct Training *trainings, int nbTrainings, enum Tests te
     }
 }
 
+//?
 float differenceTime(struct Training *trainings, int nbTrainings, char *nameAthlete, enum Tests test, struct Date dateBeginning, struct Date dateEnd) {
     float timeBeginning = FLT_MAX;
     float timeEnd = FLT_MAX;
@@ -493,6 +484,8 @@ float differenceTime(struct Training *trainings, int nbTrainings, char *nameAthl
 
     return timeEnd - timeBeginning;
 }
+
+//?
 void regressLinear(char *nameAthlete, struct Training *trainings, int nbTrainings, enum Tests test) {
     int n = 0;
     float sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
@@ -535,16 +528,14 @@ int main() {
         int choice;
         printf("\nMenu:\n");
         printf("1. Saisir un nouvel entraînement\n");
-        printf("2. Charger les entraînements depuis un fichier\n");
-        printf("3. Sauvegarder les entraînements dans un fichier\n");
-        printf("4. Consulter l'historique d'entrainements\n");
-        printf("5. Consulter les statistiques pour un athlète\n");
-        printf("6. Résumer les performances d'un athlète\n");
-        printf("7. Progression d'un athlète\n");
-        printf("8. Trouver le meilleur athlète pour une épreuve\n");
-        printf("9. Différence de temps pour un athlète entre deux dates\n");
-        printf("10. Calculer la régression linéaire des performances d'un athlète\n");
-        printf("11. Quitter\n");
+        printf("2. Consulter l'historique d'entrainements\n");
+        printf("3. Consulter les statistiques pour un athlète\n");
+        printf("4. Résumer les performances d'un athlète\n");
+        printf("5. Progression d'un athlète\n");
+        printf("6. Trouver le meilleur athlète pour une épreuve\n");
+        printf("7. Différence de temps pour un athlète entre deux dates\n");
+        printf("8. Calculer la régression linéaire des performances d'un athlète\n");
+        printf("9. Quitter\n");
         printf("Votre choix : ");
         if (scanf("%d", &choice) != 1) {
             printf("Choix invalide. Veuillez réessayer.\n");
@@ -564,38 +555,27 @@ int main() {
                 }
                 break;
             case 2:
-                printf("Nom du fichier à charger: ");
-                fgets(nameFile, MAX_NAME_LENGHT, stdin);
-                nameFile[strcspn(nameFile, "\n")] = '\0'; // Remove trailing newlinesaveTraining(nameFile, trainings,nbTraining);
-                break;
-            case 3:
-                printf("Nom du fichier à sauvegarder: ");
-                fgets(nameFile, MAX_NAME_LENGHT, stdin);
-                nameFile[strcspn(nameFile, "\n")] = '\0'; // Remove trailing newline
-                saveTraining(nameFile,trainings, nbTraining);
-                break;
-            case 4:
                 consultHistoric(trainings,nbTraining);
                 break;
-            case 5:
+            case 3:
                 printf("Nom de l'athlète: ");
                 fgets(nameAthlete, MAX_NAME_LENGHT, stdin);
                 nameAthlete[strcspn(nameAthlete, "\n")] = '\0'; // Remove trailing newline
                 consultStatistics(nameAthlete, trainings, nbTraining, test);
                 break;
-            case 6:
+            case 4:
                 printf("Nom de l'athlète: ");
                 fgets(nameAthlete, MAX_NAME_LENGHT, stdin);
                 nameAthlete[strcspn(nameAthlete, "\n")] = '\0'; // Remove trailing newline
                 summaryPerformancesAthlete(nameAthlete, trainings, nbTraining, test);
                 break;
-            case 7:
+            case 5:
                 printf("Nom de l'athlète: ");
                 fgets(nameAthlete, MAX_NAME_LENGHT, stdin);
                 nameAthlete[strcspn(nameAthlete, "\n")] = '\0'; // Remove trailing newline
                 progressAthlete(nameAthlete, trainings, nbTraining, test);
                 break;
-            case 8:
+            case 6:
                 printf("Choisissez le type d'épreuve :\n");
                 printf("0. 100 mètres\n");
                 printf("1. 400 mètres\n");
@@ -610,7 +590,7 @@ int main() {
                 }
                 findBestAthletes(trainings, nbTraining, test);
                 break;
-            case 9:
+            case 7:
                 {
                     struct Date date2;
                     printf("Nom de l'athlète: ");
@@ -631,13 +611,13 @@ int main() {
                     }
                 }
                 break;
-            case 10:
+            case 8:
                 printf("Nom de l'athlète: ");
                 fgets(nameAthlete, MAX_NAME_LENGHT, stdin);
                 nameAthlete[strcspn(nameAthlete, "\n")] = '\0'; // Remove trailing newline
                 regressLinear(nameAthlete, trainings, nbTraining, test);
                 break;
-            case 11:
+            case 9:
                 quit = true;
                 break;
             default:
@@ -646,3 +626,21 @@ int main() {
     }
     return 0;
 }
+   
+    
+    
+
+
+ 
+
+
+    
+
+      
+
+  
+ 
+          
+               
+               
+               
